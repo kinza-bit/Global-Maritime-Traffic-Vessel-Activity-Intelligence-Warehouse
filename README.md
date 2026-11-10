@@ -1,0 +1,2 @@
+# Global-Maritime-Traffic-Vessel-Activity-Intelligence-Warehouse
+This project implements the Global Maritime Traffic &amp; Vessel Activity Intelligence Warehouse—an enterprise-grade end-to-end Data Warehouse and Business Intelligence (DWBI) pipeline designed to ingest, stage, model, and analyze global vessel movements, port visits, offshore loitering, apparent fishing activities, and dark-fleet AIS disabling events.
