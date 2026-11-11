@@ -1,0 +1,11 @@
+storage_account: stmaritimeks
+containers:
+  bronze: bronze
+  silver: silver
+  audit: audit
+secret_scope: maritime-kv
+secret_names:
+  gfw_token: gfw-api-token
+overlap_days: 7
+page_size: 1000
+workers: 5
