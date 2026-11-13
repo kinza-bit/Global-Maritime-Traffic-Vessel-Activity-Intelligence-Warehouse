@@ -7,7 +7,7 @@
 | Member | Roll No | Role | Branch |
 |---|---|---|---|
 | Member 1 – ______________ | | Azure Infrastructure, Repository, Shared Code, `stg_ais_gaps` | `member1/azure-infra` |
-| Member 2 – ______________ | | API Integration & Bronze Layer, `stg_vessels` | `member2/bronze-ingestion` |
+| Member 2 – ______________ | | API Integration & Bronze Layer, `stg_vessels` | `feature/bronze-ingestion` |
 | Member 3 – ______________ | | Silver Layer & Transformations | `member3/silver-transform` |
 | Member 4 – ______________ | | Data Quality, Audit, Orchestration, Testing | `member4/dq-orchestration` |
 
@@ -541,44 +541,36 @@ Surrogate keys, `Dim_*`/`Fact_*` tables, aggregations, or reporting views.
 
 ---
 
-### 13.2 Member 2 – API Integration and Bronze Layer
-**Branch:** `member2/bronze-ingestion`
-**Where you work:** Python/Databricks notebooks (and local Python for first API experiments), Key Vault (add the token)
+### 13.2 Member 2 – API Integration, Bronze Layer, and `stg_vessels`
+**Branch:** `feature/bronze-ingestion`
+**Where you work:** Python/Databricks notebooks, ADLS Gen2 (`stmaritimeks`), Azure Key Vault (`gfw-api-token`)
 
 **Tasks**
-1. **API investigation (Phase 1, first 2 days):** with a **new** token, call each endpoint for a tiny window (one port, one day) and save sample responses. Write `docs/api_notes.md` answering every ⚠️ *verify* item in Sections 9.4 and 22. Save 1–2 small sample JSON files (anonymous, small) in `sample_data/` for teammates (**no token inside**).
-2. **Token security (Day 1):** get a new token from the GFW application page, store it in Key Vault as `gfw-api-token`, and make sure the old token is revoked/regenerated (Section 17).
-3. Refactor `marineapi.py` into modules (no hard-coded token):
-   - `ingestion/gfw_client.py` – session, headers, retry/backoff, error classes
-   - `ingestion/events_extractor.py` – paginated `POST /events` for one window
-   - `ingestion/vessels_extractor.py` – batched `GET /vessels` (20 ids)
-   - `ingestion/watermark.py` – read/write `_state/watermark.json`
-   - `ingestion/manifest.py` – write one manifest record per chunk
-4. Create Bronze notebooks: `bronze/10_bronze_events_initial.py`, `bronze/11_bronze_events_incremental.py`, `bronze/12_bronze_vessels.py`. Notebooks take widgets/parameters: `load_type`, `start_date`, `end_date`, `run_id`.
-5. Write raw JSONL to the Bronze layout (Section 10.1) using `.part` → final rename.
-6. Time one month for one port and estimate the whole initial load. Report the estimate to the team (cluster cost depends on it).
-7. Run the initial load, then an incremental run; confirm the watermark advances only on full success.
-8. **Later (Phase 5):** build `silver/stg_vessels.py` (parse `shiptypes`/`geartypes` lists, text standardization, `'Unknown'` names).
-9. Write `docs/bronze_load_report.md`: files, MB, rows per entity, runtime, failures.
+1. **Token security (Completed):** Revoked the legacy hard-coded token from `marineapi.py` and stored the newly generated GFW v3 API token strictly inside Azure Key Vault (`gfw-api-token`).
+2. **Sample payloads & API notes (Completed):** Generated sanitized sample JSON files (`sample_data/port_visit_sample.json`, `sample_data/gaps_sample.json`, `sample_data/vessels_sample.json`) with zero credentials and documented API quirks in `docs/api_notes.md`.
+3. **Bronze backfill & automated API ingestion notebooks (`bronze/`):**
+   - `bronze/01_backfill_from_landing.py` – One-time utility (`00s` setup prefix) that moved 35 pre-fetched raw `.jsonl` chunks (~402,000 rows covering `2025-01` to `2025-02`) from `_landing_local/` into partitioned Bronze folders (`gfw/events/<event_type>/load_type=initial/` and `gfw/vessels/load_type=initial/`), wrote the initial manifest (`_manifest/ingestion_manifest/backfill_20261112T182819Z.jsonl`), and initialized `_state/watermark.json` (`last_loaded_month: "2025-02"`).
+   - `bronze/10_bronze_events_initial.py` – Automated initial historical API ingestion (`10s` Bronze prefix) across 4 global datasets (`gap`, `fishing`, `loitering`, `encounter`) and 13 major ports (`port_visit`) with pagination (`limit=1000`), exponential backoff retries (`HTTP 429`/`5xx`), and manifest/watermark logging.
+   - `bronze/11_bronze_events_incremental.py` – Automated monthly incremental ingestion that reads `_state/watermark.json`, fetches `last_loaded_month + 1`, writes to `load_type=incremental/`, and advances the watermark only when all chunks succeed.
+   - `bronze/12_bronze_vessels_enrichment.py` – Automated vessel metadata enrichment script that extracts distinct `vessel.id` values from Bronze events, left-anti joins against existing Bronze vessels to avoid duplicates, and fetches new profiles in batches of 50 from `/v3/vessels`.
+4. **Silver vessel staging (`silver/23_stg_vessels.py`):** Explodes `selfReportedInfo` and `combinedSourcesInfo`, selects the latest historical registry attributes (`yearTo DESC`), cleans vessel names/identifiers, standardizes ISO-3 flag codes and numeric metrics (`length_m`, `tonnage_gt`, `engine_power_kw`, `max_speed_knots`), deduplicates by `vessel_id`, and writes the Delta table to `abfss://silver@stmaritimeks.dfs.core.windows.net/stg_vessels`.
+5. **Documentation & unit tests:** Wrote `docs/api_notes.md`, `docs/bronze_load_report.md`, and `tests/test_ingestion.py`.
 
-**Technologies:** Python `requests`, PySpark (for reading back), ADLS Gen2, Key Vault via secret scope, Databricks.
-**Expected deliverables:** Bronze data in Azure for all 5 event types + vessels; manifest; watermark; API notes; sample files for teammates; `stg_vessels`.
-**Depends on:** Member 1 for storage, secret scope and `common/` (Phase 1). Until then, test locally and write to a local folder. Members 3 and 4 depend on your **sample files (Day 3)** and **Bronze layout (Day 3)**.
-**Testing:** (a) unit tests with mocked HTTP responses for pagination, retry on 429/500, `.part` handling (`tests/test_ingestion.py`); (b) re-run the same window → no duplicate files, manifest says skipped; (c) kill a run midway → no corrupt file, next run completes; (d) incremental run only requests the new window.
-**Commit to repo:** `ingestion/`, `bronze/`, `tests/test_ingestion.py`, `docs/api_notes.md`, `docs/bronze_load_report.md`, `sample_data/`, `silver/stg_vessels.py`.
+**Technologies:** Python `requests`, PySpark, Delta Lake, ADLS Gen2 (`stmaritimeks`), Azure Key Vault via Databricks secret scope.
+**Expected deliverables:** Bronze data in Azure for all 5 event types + vessels; manifest; watermark; API notes; sample files for teammates; `silver/23_stg_vessels.py`; Bronze load report.
+**Depends on:** Member 1 for storage (`stmaritimeks`), secret scope (`KV_SCOPE`), and `common/`. Members 3 and 4 depend on `sample_data/*.json` and the Bronze partition layout.
+**Testing:** Unit tests (`tests/test_ingestion.py`) for monthly rollover and GeoJSON polygon generation; verified 35 backfill chunks, manifest, and watermark in ADLS; idempotent overwrite/deduplication in `23_stg_vessels.py`.
+**Commit to repo:** `bronze/`, `silver/23_stg_vessels.py`, `tests/test_ingestion.py`, `docs/api_notes.md`, `docs/bronze_load_report.md`, `sample_data/`.
 
 **Checklist – Member 2**
-- [ ] Old token replaced; new token only in Key Vault
-- [ ] `docs/api_notes.md` answers all ⚠️ items
-- [ ] Sample JSON files shared with team
-- [ ] Modules refactored; no token or hard-coded paths in code
-- [ ] Pagination, retry/backoff, `.part` rename working
-- [ ] Initial load completed (events + vessels)
-- [ ] Manifest records for every chunk
-- [ ] Watermark + incremental run tested
-- [ ] Unit tests passing in CI
-- [ ] Bronze load report written
-- [ ] `stg_vessels` notebook merged
+- [x] Old token replaced; new token only in Key Vault (`gfw-api-token`)
+- [x] Sample JSON files shared with team (`sample_data/*.json`)
+- [x] Backfill script (`bronze/01_backfill_from_landing.py`) executed: 35 files (~402k rows), manifest, and watermark (`2025-02`) live in `stmaritimeks/bronze`
+- [x] Automated Bronze notebooks committed (`10_bronze_events_initial.py`, `11_bronze_events_incremental.py`, `12_bronze_vessels_enrichment.py`)
+- [x] `docs/api_notes.md` and `docs/bronze_load_report.md` written
+- [x] Unit tests (`tests/test_ingestion.py`) written
+- [X] `silver/23_stg_vessels.py` executed and merged
+- [X] Confirm Databricks Secret Scope name (`KV_SCOPE`) with Member 1 & test incremental run (`2025-03`)
 
 ---
 
@@ -693,10 +685,11 @@ maritime-dwbi/
 │   ├── vessels_extractor.py
 │   ├── watermark.py
 │   └── manifest.py
-├── bronze/                        # Bronze notebooks
-│   ├── 10_bronze_events_initial.py
-│   ├── 11_bronze_events_incremental.py
-│   └── 12_bronze_vessels.py
+├── ├── bronze/                        # Bronze notebooks (Member 2)
+│   ├── 01_backfill_from_landing.py    # One-time local historical backfill utility
+│   ├── 10_bronze_events_initial.py    # Automated historical events ingestion
+│   ├── 11_bronze_events_incremental.py # Automated watermark-driven monthly incremental ingestion
+│   └── 12_bronze_vessels_enrichment.py # Automated deduplicated vessel metadata enrichment
 ├── silver/                        # Silver notebooks and helpers
 │   ├── transform_utils.py
 │   ├── 20_stg_port_visits.py
@@ -737,6 +730,13 @@ maritime-dwbi/
     ├── data_cleaning_report.pdf   # M1 (final)
     └── data_quality_report.pdf    # M4 (final)
 ```
+### Notebook Numbering Convention
+Notebooks across `notebooks/`, `bronze/`, `silver/`, and `data_quality/` follow a strict numerical prefix indicating pipeline stage and execution dependency order:
+- **`00`–`09` (Setup & Utilities):** One-time environment checks (`00_setup_check.py`) and local historical backfill (`01_backfill_from_landing.py`).
+- **`10`–`19` (Bronze Layer):** Raw GFW v3 API ingestion (`10_bronze_events_initial.py`, `11_bronze_events_incremental.py`, `12_bronze_vessels_enrichment.py`).
+- **`20`–`29` (Silver Layer):** Event cleaning (`20`–`22`) runs prior to vessel staging (`23_stg_vessels.py`), which joins/filters against event vessel IDs.
+- **`30`–`39` (Data Quality & Audit):** Automated DQ validation checks (`30_dq_checks.py`) executed after all Silver tables are populated.
+
 Notebooks are stored as `.py` files in "Databricks source format" (first line `# Databricks notebook source`) so they diff nicely in GitHub. **Do not commit** the original `marineapi.py`, raw data, or CSVs.
 
 ## 15. Git Branching and Collaboration Strategy
@@ -934,12 +934,12 @@ Silver tasks run in parallel in the job (except `stg_vessels` needs Bronze vesse
 | 3 | Does the `startDate`/`endDate` filter use event start or overlap? Do old events change later? | M2 | Incremental design |
 | 4 | Rate limits / quotas, `Retry-After` header, max `offset`? | M2 | Retry settings |
 | 5 | Latest date with data in each dataset? | M2 | Initial vs incremental split |
-| 6 | Real field paths for fishing/loitering duration (script uses `fishing.averageDurationHours` and `loitering.totalTimeHours`) | M2, M3 | Correct measures in `stg_vessel_events` |
-| 7 | Does a vessel have several `selfReportedInfo` / `combinedSourcesInfo` records? Which should we keep? | M2, M3 | `stg_vessels` correctness |
-| 8 | Real value formats: flag (2- or 3-letter code?), port-name casing, vessel type values | M3 | Text standardization rules |
-| 9 | Proposal says ~343k events, ~88k vessels, 787 ports. The script covers 13 port areas, ≤15k events/month/type and ≤8,000 vessels. Which numbers are right? | Whole team | Report numbers, vessel coverage |
+| 6 | Real field paths for fishing/loitering duration & string-encoded numerics | M2, M3 | **Verified:** `fishing.averageDurationHours` and `loitering.totalTimeHours` confirmed; several numeric fields (`gap.distanceKm`, `gap.impliedSpeedKnots`, `port_visit.confidence`, `port_visit.distanceFromShoreKm`) arrive as JSON strings and must be read as `STRING` before casting in Silver. |
+| 7 | Does a vessel have several `selfReportedInfo` / `combinedSourcesInfo` records? Which should we keep? | M2, M3 | **Verified:** Vessels contain multiple historical records keyed by `yearFrom`/`yearTo`. `23_stg_vessels.py` explodes `selfReportedInfo` and selects the most recent `combinedSourcesInfo` record ordered by `yearTo DESC`. |
+| 8 | Real value formats: flag (2- or 3-letter code?), port-name casing, vessel type values | M3 | **Verified:** Flags use 3-letter ISO codes (e.g. `PAN`, `CHN`); vessel names contain trailing whitespace/symbols (`>`, `&`) and `null`s (`port_visit.endAnchorage.name` can be `null`), handled in Silver cleaning rules. |
+| 9 | Proposal says ~343k events, ~88k vessels, 787 ports. Our backfilled dataset covers 13 port areas (~402k total rows across `2025-01` to `2025-02`) and 8,052 enriched vessels. | Whole team | Report numbers & vessel reference coverage (`DQ-I01`) |
 | 10 | Proposal data dictionary and DDL differ (e.g. `Callsign`, `Max_Speed_KN` only in DDL; `Fact_Vessel_Event` missing from dictionary; `FK_Location`/`Event_ID` missing in the dictionary's `Fact_AIS_Gap`) | M3 | Silver keeps all fields the DDL needs; reconcile docs before Gold |
 | 11 | Roll-number format differs between documents (`24L` vs `241`) | Whole team | Report headers |
 
 ---
-*Last updated: November 2026 · Keep this README updated as decisions are made.*
+*Last updated: 11 November 2026 by member 2faryal· Keep this README updated as decisions are made.*
