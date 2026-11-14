@@ -99,8 +99,58 @@ USING DELTA
 LOCATION 'abfss://silver@stmaritimeks.dfs.core.windows.net/stg_rejects'
 COMMENT 'Silver: rows that failed critical rules, with reason and original JSON (key reject_id). Owner: Member 3.';
 
+-- stg_ais_gaps: merge key = event_id
+CREATE TABLE IF NOT EXISTS project_staging.stg_ais_gaps (
+  event_id STRING NOT NULL,
+  vessel_id STRING NOT NULL,
+  vessel_name STRING,
+  ssvid STRING,
+  vessel_flag STRING,
+  vessel_type STRING,
+  start_ts TIMESTAMP NOT NULL,
+  end_ts TIMESTAMP NOT NULL,
+  start_date DATE,
+  duration_hours DECIMAL(10,2),
+  distance_km DECIMAL(10,2),
+  implied_speed_knots DECIMAL(10,2),
+  intentional_disabling BOOLEAN,
+  off_lat DECIMAL(10,6),
+  off_lon DECIMAL(10,6),
+  on_lat DECIMAL(10,6),
+  on_lon DECIMAL(10,6),
+  positions_per_day_sat_reception DECIMAL(10,2),
+  high_seas BOOLEAN,
+  mpa BOOLEAN,
+  mpa_no_take BOOLEAN,
+  _source_file STRING NOT NULL,
+  _bronze_ingest_ts TIMESTAMP,
+  _silver_load_ts TIMESTAMP NOT NULL,
+  _run_id STRING NOT NULL
+)
+USING DELTA
+LOCATION 'abfss://silver@stmaritimeks.dfs.core.windows.net/stg_ais_gaps'
+COMMENT 'Silver: one row per AIS gap event (key event_id). Owner: Member 3.';
+-- stg_vessels: merge key = vessel_id
+CREATE TABLE IF NOT EXISTS project_staging.stg_vessels (
+  vessel_id STRING NOT NULL,
+  vessel_name STRING,
+  ssvid STRING,
+  imo STRING,
+  callsign STRING,
+  vessel_flag STRING,
+  length_m DECIMAL(10,2),
+  tonnage_gt DECIMAL(10,2),
+  engine_power_kw DECIMAL(10,2),
+  max_speed_kn DECIMAL(10,2),
+  ship_types ARRAY<STRING>,
+  gear_types ARRAY<STRING>,
+  _source_file STRING,
+  _bronze_ingest_ts TIMESTAMP,
+  _silver_load_ts TIMESTAMP,
+  _run_id STRING
+)
+USING DELTA
+LOCATION 'abfss://silver@stmaritimeks.dfs.core.windows.net/stg_vessels'
+COMMENT 'Silver: one row per vessel (key vessel_id). Owner: Member 3.';
+
 -- stg_ais_gaps  (Member 1) and stg_vessels (Member 2)
--- TODO: add their DDL here once their schemas are final. stg_vessels is already
--- written by silver/23_stg_vessels.py to
---   abfss://silver@stmaritimeks.dfs.core.windows.net/stg_vessels
--- so copy its columns from that Delta table:  DESCRIBE TABLE delta.`<that path>`

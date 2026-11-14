@@ -10,8 +10,15 @@ Rules:
   * Silver types follow README 11.2.
 """
 from pyspark.sql.types import (
-    ArrayType, BooleanType, DateType, DecimalType, IntegerType, StringType,
-    StructField, StructType, TimestampType,
+    StructType,
+    StructField,
+    StringType,
+    DecimalType,
+    ArrayType,
+    TimestampType,
+    DateType,
+    IntegerType,
+    BooleanType,   
 )
 
 S = StringType()
@@ -59,6 +66,17 @@ BRONZE_PORT_VISIT_SCHEMA = StructType(_COMMON_EVENT_FIELDS + [
     ])),
 ])
 
+BRONZE_AIS_GAP_SCHEMA = StructType(_COMMON_EVENT_FIELDS + [
+    _f("gap", StructType([
+        _f("durationHours"),
+        _f("distanceKm"),             # STRING in Bronze
+        _f("impliedSpeedKnots"),      # STRING in Bronze
+        _f("intentionalDisabling"),
+        _f("offPosition", _POSITION),
+        _f("onPosition", _POSITION),
+        _f("positionsPerDaySatReception"),
+    ])),
+])
 # One read schema for FISHING, LOITERING and ENCOUNTER; non-matching structs
 # come back NULL.
 BRONZE_VESSEL_EVENT_SCHEMA = StructType(_COMMON_EVENT_FIELDS + [
@@ -152,6 +170,30 @@ STG_VESSEL_EVENTS_SCHEMA = StructType([
     _f("mpa_no_take", BooleanType()),  # size(regions.mpaNoTake) > 0
 ] + AUDIT_COLUMNS)
 
+STG_AIS_GAPS_SCHEMA = StructType([
+    _f("event_id", S, False),
+    _f("vessel_id", S, False),
+    _f("vessel_name"),
+    _f("ssvid"),
+    _f("vessel_flag"),
+    _f("vessel_type"),
+    _f("start_ts", TimestampType(), False),
+    _f("end_ts", TimestampType(), False),
+    _f("start_date", DateType()),
+    _f("duration_hours", D2),
+    _f("distance_km", D2),
+    _f("implied_speed_knots", D2),
+    _f("intentional_disabling", BooleanType()),
+    _f("off_lat", D6),
+    _f("off_lon", D6),
+    _f("on_lat", D6),
+    _f("on_lon", D6),
+    _f("positions_per_day_sat_reception", D2),
+    _f("high_seas", BooleanType()),
+    _f("mpa", BooleanType()),
+    _f("mpa_no_take", BooleanType()),
+] + AUDIT_COLUMNS)
+
 STG_REJECTS_SCHEMA = StructType([
     _f("reject_id", S, False),
     _f("entity", S, False),            # port_visit | fishing | loitering | encounter
@@ -159,10 +201,31 @@ STG_REJECTS_SCHEMA = StructType([
     _f("raw_json"),
 ] + AUDIT_COLUMNS)
 
+STG_VESSELS_SCHEMA = StructType([
+    StructField("vessel_id", StringType(), False),
+    StructField("vessel_name", StringType(), True),
+    StructField("ssvid", StringType(), True),
+    StructField("imo", StringType(), True),
+    StructField("callsign", StringType(), True),
+    StructField("vessel_flag", StringType(), True),
+    StructField("length_m", DecimalType(10, 2), True),
+    StructField("tonnage_gt", DecimalType(10, 2), True),
+    StructField("engine_power_kw", DecimalType(10, 2), True),
+    StructField("max_speed_kn", DecimalType(10, 2), True),
+    StructField("ship_types", ArrayType(StringType()), True),
+    StructField("gear_types", ArrayType(StringType()), True),
+    StructField("_source_file", StringType(), True),
+    StructField("_bronze_ingest_ts", TimestampType(), True),
+    StructField("_silver_load_ts", TimestampType(), True),
+    StructField("_run_id", StringType(), True),
+])
+
 SILVER_SCHEMAS = {
     "stg_port_visits": STG_PORT_VISITS_SCHEMA,
     "stg_vessel_events": STG_VESSEL_EVENTS_SCHEMA,
     "stg_rejects": STG_REJECTS_SCHEMA,
+    "stg_vessels": STG_VESSELS_SCHEMA,
+    "stg_ais_gaps": STG_AIS_GAPS_SCHEMA,
 }
 
 # MERGE keys
@@ -170,7 +233,7 @@ SILVER_KEYS = {
     "stg_port_visits": ["event_id"],
     "stg_vessel_events": ["event_id"],
     "stg_rejects": ["reject_id"],
+    "stg_vessels": ["vessel_id"],
+    "stg_ais_gaps": ["event_id"],
 }
-# NOTE: stg_ais_gaps (Member 1) and stg_vessels (Member 2, built in
-# silver/23_stg_vessels.py) are not defined here; copy the existing
-# stg_vessels Delta schema so DQ-S01 does not fail.
+

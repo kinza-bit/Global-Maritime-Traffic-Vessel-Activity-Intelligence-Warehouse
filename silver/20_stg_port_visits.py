@@ -12,7 +12,7 @@ import uuid
 
 # 1. Parameters and configuration
 
-dbutils.widgets.text("dry_run", "true")
+dbutils.widgets.text("dry_run", "false")
 dbutils.widgets.text("run_id", "")
 dbutils.widgets.text("expected_unique_ids", "296199")  # blank = skip this check
 
