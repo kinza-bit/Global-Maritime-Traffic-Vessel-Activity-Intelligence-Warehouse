@@ -613,14 +613,12 @@ Surrogate keys, `Dim_*`/`Fact_*` tables, aggregations, or reporting views.
 **Where you work:** Databricks notebooks, Databricks Workflows UI, GitHub Actions/pytest
 
 **Tasks**
-1. **Design the rules (Day 1–5):** write `data_quality/rules.yaml` from Section 16 (rule id, table, column, type, severity `CRITICAL`/`WARNING`, threshold).
-2. Build `data_quality/dq_engine.py` – reads `rules.yaml`, runs each rule on a Silver table with Spark, returns pass/fail with counts. Build `data_quality/schema_validation.py` that compares the actual Delta schema with `schemas/silver_schemas.py`.
-3. Build the **audit logger** `common/audit.py` (agree the interface with Member 3 on Day 5): `start_run()`, `end_run()`, `log_step(rows_in, rows_out, rejects, duplicates_removed)`, `log_dq_result()`. Tables: `project_audit.pipeline_runs`, `project_audit.dq_results`.
-4. Write the DQ notebook `data_quality/30_dq_checks.py` and `sql/20_dq_checks.sql` (SQL versions of key checks).
-5. **Orchestration:** create `orchestration/run_pipeline.py` (a simple driver notebook that passes `run_id`, `load_type`, dates) and `orchestration/workflow_job.json` (exported job definition, **no secrets**). Task order: `bronze_events → bronze_vessels → silver_port_visits | silver_vessel_events | silver_ais_gaps | silver_vessels → dq_checks`. Set retries (max 1–2) and email on failure.
-6. **Integration testing (Phase 6):** run the full pipeline on a small sample, then the full data, then an incremental run, and the failure tests below. Log every bug as a GitHub Issue.
-7. Write `docs/runbook.md`: how to run, rerun, and recover.
-8. **Phase 7:** produce the **Data Quality Report (PDF)**: rules, results, failures, reconciliation, reference coverage, and the list of Gold-dependent checks that cannot run yet (Section 3).
+1. **Physical Data Warehouse Schema & ETL (`sql/`):** Designed and executed PostgreSQL DDL scripts for staging (`01_staging_schema.sql`) and the dimensional star schema (`02_dw_schema.sql`), loaded staging data from Silver CSV exports (`03_load_staging_from_csv.sql`), and built idempotent dimension and fact loaders (`04_load_dimensions.sql`, `05_load_facts.sql`) with `-1` / `Unknown` surrogate key fallbacks.
+2. **Automated Data Quality Validation (`06_dq_checks.sql`):** Implemented 30 automated SQL validation checks across Completeness (`DQ-C01`–`DQ-C07`), Accuracy (`DQ-A01`–`DQ-A07`), Integrity (`DQ-I01`–`DQ-I11`), and Uniqueness (`DQ-U01`–`DQ-U05`), logging all outcomes to `project_audit.dq_results`.
+3. **End-to-End Reconciliation & Testing:** Executed full-dataset and idempotency validation across Silver staging and Gold star-schema tables (`296,199` port visits, `133,694` vessel events, `39,056` AIS gaps, and `188,714` vessels plus the `Unknown` member) with 0 critical failures and 0 row/duration variance.
+4. **Operational Runbook (`RUNBOOK.md` / `Operational_Pipeline_Runbook.pdf`):** Documented environment prerequisites, end-to-end execution order, baseline reconciliation benchmarks, and failure recovery procedures.
+5. **Phase 7 Deliverable Reports (PDF):** Produced the **Data Cleaning & Standardization Report** and the **Data Quality Validation Report** backed by verified pipeline code and `project_audit.dq_results` outputs.
+
 
 **Technologies:** PySpark, Delta, YAML, `pytest`, Databricks Workflows, GitHub Actions.
 **Expected deliverables:** DQ rules and engine; DQ results for all Silver tables; audit tables; working job; test evidence; runbook; DQ PDF.
