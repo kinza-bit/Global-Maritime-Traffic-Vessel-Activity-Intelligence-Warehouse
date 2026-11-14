@@ -1,0 +1,35 @@
+INSERT 0 30
+ check_id |  dimension   |                            description                             |    table_name     | rows_checked | rows_failed | severity | status 
+----------+--------------+--------------------------------------------------------------------+-------------------+--------------+-------------+----------+--------
+ DQ-A01   | Accuracy     | Staging row count = fact row count (difference)                    | fact_port_visit   |       296199 |           0 | CRITICAL | PASS
+ DQ-A02   | Accuracy     | Staging row count = fact row count (difference)                    | fact_ais_gap      |        39056 |           0 | CRITICAL | PASS
+ DQ-A03   | Accuracy     | Staging row count = fact row count (difference)                    | fact_vessel_event |       133694 |           0 | CRITICAL | PASS
+ DQ-A04   | Accuracy     | SUM(duration_hrs) staging vs fact (1 = mismatch)                   | fact_port_visit   |            1 |           0 | CRITICAL | PASS
+ DQ-A05   | Accuracy     | SUM(duration_hours) staging vs fact (1 = mismatch)                 | fact_ais_gap      |            1 |           0 | CRITICAL | PASS
+ DQ-A06   | Accuracy     | SUM(duration_hours) staging vs fact (1 = mismatch)                 | fact_vessel_event |            1 |           0 | CRITICAL | PASS
+ DQ-A07   | Accuracy     | Staging vessel_ids missing from dim_vessel                         | dim_vessel        |        97784 |           0 | CRITICAL | PASS
+ DQ-C01   | Completeness | Fact rows with NULL surrogate key (date/vessel/location)           | fact_port_visit   |       296199 |           0 | CRITICAL | PASS
+ DQ-C02   | Completeness | Fact rows with NULL surrogate key (date/vessel/location)           | fact_ais_gap      |        39056 |           0 | CRITICAL | PASS
+ DQ-C03   | Completeness | Fact rows with NULL surrogate key (date/vessel/location)           | fact_vessel_event |       133694 |           0 | CRITICAL | PASS
+ DQ-C04   | Completeness | Port visits mapped to Unknown port (anchorage name missing)        | fact_port_visit   |       296199 |       29799 | WARNING  | WARN
+ DQ-C05   | Completeness | Fact rows mapped to Unknown vessel                                 | fact_port_visit   |       296199 |           0 | WARNING  | PASS
+ DQ-C06   | Completeness | Vessels in dim_vessel without detail record (length/tonnage/power) | dim_vessel        |       188714 |        8009 | WARNING  | WARN
+ DQ-C07   | Completeness | Vessels with NULL flag_country                                     | dim_vessel        |       188714 |       50874 | WARNING  | WARN
+ DQ-I01   | Integrity    | Fact rows without matching dim_date                                | fact_port_visit   |       296199 |           0 | CRITICAL | PASS
+ DQ-I02   | Integrity    | Fact rows without matching dim_vessel                              | fact_port_visit   |       296199 |           0 | CRITICAL | PASS
+ DQ-I03   | Integrity    | Fact rows without matching dim_port                                | fact_port_visit   |       296199 |           0 | CRITICAL | PASS
+ DQ-I04   | Integrity    | Fact rows without matching dim_location                            | fact_port_visit   |       296199 |           0 | CRITICAL | PASS
+ DQ-I05   | Integrity    | Fact rows without matching dim_date                                | fact_ais_gap      |        39056 |           0 | CRITICAL | PASS
+ DQ-I06   | Integrity    | Fact rows without matching dim_vessel                              | fact_ais_gap      |        39056 |           0 | CRITICAL | PASS
+ DQ-I07   | Integrity    | Fact rows without matching dim_location                            | fact_ais_gap      |        39056 |           0 | CRITICAL | PASS
+ DQ-I08   | Integrity    | Fact rows without matching dim_date                                | fact_vessel_event |       133694 |           0 | CRITICAL | PASS
+ DQ-I09   | Integrity    | Fact rows without matching dim_vessel                              | fact_vessel_event |       133694 |           0 | CRITICAL | PASS
+ DQ-I10   | Integrity    | Fact rows without matching dim_location                            | fact_vessel_event |       133694 |           0 | CRITICAL | PASS
+ DQ-I11   | Integrity    | Encounter rows whose encountered vessel is missing from dim_vessel | fact_vessel_event |        44947 |           0 | CRITICAL | PASS
+ DQ-U01   | Uniqueness   | Duplicate event_id                                                 | fact_port_visit   |       296199 |           0 | CRITICAL | PASS
+ DQ-U02   | Uniqueness   | Duplicate event_id                                                 | fact_ais_gap      |        39056 |           0 | CRITICAL | PASS
+ DQ-U03   | Uniqueness   | Duplicate event_id                                                 | fact_vessel_event |       133694 |           0 | CRITICAL | PASS
+ DQ-U04   | Uniqueness   | Duplicate natural key (vessel_id)                                  | dim_vessel        |       188715 |           0 | CRITICAL | PASS
+ DQ-U05   | Uniqueness   | Duplicate natural key (port_name)                                  | dim_port          |          841 |           0 | CRITICAL | PASS
+(30 rows)
+
