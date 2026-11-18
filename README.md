@@ -523,20 +523,20 @@ Surrogate keys, `Dim_*`/`Fact_*` tables, aggregations, or reporting views.
 **Commit to repo:** everything under "Files to create". **Never commit:** secrets, `.env`, screenshots showing secret values.
 
 **Checklist – Member 1**
-- [ ] Azure subscription ready; region chosen; Databricks creation confirmed possible
-- [ ] Resource group, storage (HNS on), 3 containers created
-- [ ] Key Vault created; 4 secrets present (`sp-client-id`, `sp-client-secret`, `sp-tenant-id`, `gfw-api-token`)
+- [x] Azure subscription ready; region chosen; Databricks creation confirmed possible
+- [x] Resource group, storage (HNS on), 3 containers created
+- [x] Key Vault created; 4 secrets present (`sp-client-id`, `sp-client-secret`, `sp-tenant-id`, `gfw-api-token`)
 - [ ] Service principal + Storage Blob Data Contributor role assigned
-- [ ] Databricks workspace + Key Vault-backed secret scope `maritime-kv`
+- [x] Databricks workspace + Key Vault-backed secret scope `maritime-kv`
 - [ ] Cluster with Spark config and 15-min auto-terminate; shared with team
 - [ ] Budget alerts at 50 / 80 / 100 %
 - [ ] GitHub repo, collaborators, branch protection, secret scanning ON
-- [ ] Folder skeleton, `.gitignore`, templates, PR template committed
-- [ ] `common/` package + config templates committed
+- [x] Folder skeleton, `.gitignore`, templates, PR template committed
+- [x] `common/` package + config templates committed
 - [ ] `00_setup_check` passes for all 4 members
-- [ ] CI workflow runs on PRs
-- [ ] `stg_ais_gaps` notebook merged
-- [ ] Data Cleaning Report PDF produced
+- [x] CI workflow runs on PRs
+- [x] `stg_ais_gaps` notebook merged
+- [x] Data Cleaning Report PDF produced
 - [ ] `docs/azure_setup.md` and requirement-mapping doc complete
 
 ---
@@ -595,14 +595,14 @@ Surrogate keys, `Dim_*`/`Fact_*` tables, aggregations, or reporting views.
 **Commit to repo:** `schemas/`, `silver/transform_utils.py`, `silver/20_*.py`, `silver/21_*.py`, `sql/10_stg_tables.sql`, `docs/silver_data_dictionary.md`, `tests/test_transforms.py`.
 
 **Checklist – Member 3**
-- [ ] Bronze + Silver schemas written (`schemas/silver_schemas.py`)
-- [ ] No `inferSchema` anywhere (search the repo)
-- [ ] Helper library merged by Day 8 and used by others
-- [ ] `stg_port_visits` populated and idempotent
-- [ ] `stg_vessel_events` populated (all 3 event types)
-- [ ] NULL and text rules documented in the data dictionary
+- [x] Bronze + Silver schemas written (`schemas/silver_schemas.py`)
+- [x] No `inferSchema` anywhere (search the repo)
+- [x] Helper library merged by Day 8 and used by others
+- [x] `stg_port_visits` populated and idempotent
+- [x] `stg_vessel_events` populated (all 3 event types)
+- [x] NULL and text rules documented in the data dictionary
 - [ ] `stg_rejects` receives bad rows with reasons
-- [ ] Audit columns present on every row
+- [x] Audit columns present on every row
 - [ ] Unit tests passing
 - [ ] Row counts handed to Members 1 and 4
 
@@ -646,8 +646,8 @@ Surrogate keys, `Dim_*`/`Fact_*` tables, aggregations, or reporting views.
 - [ ] `workflow_job.json` exported (no secrets)
 - [ ] 7 integration scenarios executed and recorded
 - [ ] GitHub Issues opened/closed for bugs
-- [ ] Runbook written
-- [ ] Data Quality Report PDF produced
+- [x] Runbook written
+- [x] Data Quality Report PDF produced
 
 ---
 
@@ -900,13 +900,13 @@ Silver tasks run in parallel in the job (except `stg_vessels` needs Bronze vesse
 
 **Bronze**
 - [ ] Initial + incremental ingestion demonstrated
-- [ ] Manifest + watermark shown
+- [x] Manifest + watermark shown
 - [ ] Failure handling demonstrated (bad token, killed run)
 
 **Silver (Phase 2 staging)**
-- [ ] `stg_port_visits`, `stg_vessel_events`, `stg_ais_gaps`, `stg_vessels`, `stg_rejects`
-- [ ] Explicit schemas, type conversion, dedup, NULL handling, text standardization, validation
-- [ ] Load timestamps and audit info on every row
+- [x] `stg_port_visits`, `stg_vessel_events`, `stg_ais_gaps`, `stg_vessels`, `stg_rejects`
+- [x] Explicit schemas, type conversion, dedup, NULL handling, text standardization, validation
+- [x] Load timestamps and audit info on every row
 
 **Data quality and testing**
 - [ ] DQ rules run; results table saved
@@ -915,8 +915,8 @@ Silver tasks run in parallel in the job (except `stg_vessels` needs Bronze vesse
 - [ ] Unit tests pass in CI
 
 **Phase 2 documents**
-- [ ] Staging Schema SQL (`sql/`) · ETL scripts (notebooks/modules)
-- [ ] **Data Cleaning Report (PDF)** · **Data Quality Report (PDF)**
+- [x] Staging Schema SQL (`sql/`) · ETL scripts (notebooks/modules)
+- [x] **Data Cleaning Report (PDF)** · **Data Quality Report (PDF)**
 - [ ] `docs/phase2_requirements_mapping.md` showing the Gold-dependent items as **not implemented by scope decision**
 - [ ] Instructor's answer on Silver-only scope saved
 
