@@ -12,3 +12,6 @@ CREATE SCHEMA IF NOT EXISTS project_reporting;
 \ir 05_load_facts.sql
 \ir 06_dq_checks.sql
 \ir 07_reporting_views.sql
+\ir 08_analytical_queries.sql
+\ir 09_olap_queries.sql
+\ir 10_indexing_before_after.sql
