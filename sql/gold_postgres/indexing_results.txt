@@ -1,0 +1,119 @@
+SET
+DROP INDEX
+DROP INDEX
+DROP INDEX
+ANALYZE
+                                                                       QUERY PLAN                                                                       
+--------------------------------------------------------------------------------------------------------------------------------------------------------
+ HashAggregate  (cost=12581.57..12587.27 rows=380 width=44) (actual time=22.408..22.472 rows=231.00 loops=1)
+   Group Key: sk_port
+   Batches: 1  Memory Usage: 176kB
+   Buffers: shared hit=8006
+   ->  Seq Scan on fact_port_visit  (cost=0.00..12448.99 rows=17678 width=11) (actual time=0.024..20.108 rows=17243.00 loops=1)
+         Filter: ((start_ts >= '2025-02-01 00:00:00'::timestamp without time zone) AND (start_ts < '2025-02-08 00:00:00'::timestamp without time zone))
+         Rows Removed by Filter: 278956
+         Buffers: shared hit=8006
+ Planning:
+   Buffers: shared hit=60
+ Planning Time: 0.287 ms
+ Execution Time: 22.539 ms
+(12 rows)
+
+CREATE INDEX
+ANALYZE
+                                                                            QUERY PLAN                                                                            
+------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ HashAggregate  (cost=8795.69..8801.71 rows=401 width=44) (actual time=13.282..13.370 rows=231.00 loops=1)
+   Group Key: sk_port
+   Batches: 1  Memory Usage: 176kB
+   Buffers: shared hit=7144 read=50
+   ->  Bitmap Heap Scan on fact_port_visit  (cost=384.85..8660.75 rows=17993 width=11) (actual time=3.102..9.513 rows=17243.00 loops=1)
+         Recheck Cond: ((start_ts >= '2025-02-01 00:00:00'::timestamp without time zone) AND (start_ts < '2025-02-08 00:00:00'::timestamp without time zone))
+         Heap Blocks: exact=7144
+         Buffers: shared hit=7144 read=50
+         ->  Bitmap Index Scan on ix_fpv_start_ts  (cost=0.00..380.35 rows=17993 width=0) (actual time=2.359..2.359 rows=17243.00 loops=1)
+               Index Cond: ((start_ts >= '2025-02-01 00:00:00'::timestamp without time zone) AND (start_ts < '2025-02-08 00:00:00'::timestamp without time zone))
+               Index Searches: 1
+               Buffers: shared read=50
+ Planning:
+   Buffers: shared hit=27 read=1
+ Planning Time: 0.319 ms
+ Execution Time: 13.497 ms
+(16 rows)
+
+                                                              QUERY PLAN                                                              
+--------------------------------------------------------------------------------------------------------------------------------------
+ Limit  (cost=1967.00..1967.05 rows=20 width=12) (actual time=7.215..7.218 rows=20.00 loops=1)
+   Buffers: shared hit=1028
+   ->  Sort  (cost=1967.00..1993.10 rows=10441 width=12) (actual time=7.213..7.214 rows=20.00 loops=1)
+         Sort Key: (count(*)) DESC
+         Sort Method: top-N heapsort  Memory: 25kB
+         Buffers: shared hit=1028
+         ->  HashAggregate  (cost=1584.75..1689.16 rows=10441 width=12) (actual time=5.364..6.444 rows=11222.00 loops=1)
+               Group Key: sk_vessel
+               Batches: 1  Memory Usage: 793kB
+               Buffers: shared hit=1028
+               ->  Seq Scan on fact_ais_gap  (cost=0.00..1516.20 rows=13711 width=4) (actual time=0.013..3.832 rows=13677.00 loops=1)
+                     Filter: (intentional_disabling AND (duration_hours > '48'::numeric))
+                     Rows Removed by Filter: 25379
+                     Buffers: shared hit=1028
+ Planning:
+   Buffers: shared hit=25
+ Planning Time: 0.217 ms
+ Execution Time: 7.369 ms
+(18 rows)
+
+CREATE INDEX
+ANALYZE
+                                                              QUERY PLAN                                                              
+--------------------------------------------------------------------------------------------------------------------------------------
+ Limit  (cost=1968.47..1968.52 rows=20 width=12) (actual time=9.557..9.560 rows=20.00 loops=1)
+   Buffers: shared hit=1028
+   ->  Sort  (cost=1968.47..1994.65 rows=10475 width=12) (actual time=9.556..9.558 rows=20.00 loops=1)
+         Sort Key: (count(*)) DESC
+         Sort Method: top-N heapsort  Memory: 25kB
+         Buffers: shared hit=1028
+         ->  HashAggregate  (cost=1584.98..1689.73 rows=10475 width=12) (actual time=7.705..8.720 rows=11222.00 loops=1)
+               Group Key: sk_vessel
+               Batches: 1  Memory Usage: 793kB
+               Buffers: shared hit=1028
+               ->  Seq Scan on fact_ais_gap  (cost=0.00..1516.20 rows=13756 width=4) (actual time=0.011..5.487 rows=13677.00 loops=1)
+                     Filter: (intentional_disabling AND (duration_hours > '48'::numeric))
+                     Rows Removed by Filter: 25379
+                     Buffers: shared hit=1028
+ Planning:
+   Buffers: shared hit=30 read=1
+ Planning Time: 0.214 ms
+ Execution Time: 9.725 ms
+(18 rows)
+
+                                                   QUERY PLAN                                                    
+-----------------------------------------------------------------------------------------------------------------
+ Seq Scan on dim_vessel  (cost=0.00..6381.73 rows=572 width=25) (actual time=0.013..19.329 rows=2857.00 loops=1)
+   Filter: ((flag_country = 'PAN'::text) AND (primary_vessel_type = 'CARGO'::text))
+   Rows Removed by Filter: 185858
+   Buffers: shared hit=3551
+ Planning:
+   Buffers: shared hit=23
+ Planning Time: 0.104 ms
+ Execution Time: 19.467 ms
+(8 rows)
+
+CREATE INDEX
+ANALYZE
+                                                           QUERY PLAN                                                           
+--------------------------------------------------------------------------------------------------------------------------------
+ Bitmap Heap Scan on dim_vessel  (cost=9.46..1362.54 rows=492 width=25) (actual time=1.137..2.599 rows=2857.00 loops=1)
+   Recheck Cond: ((flag_country = 'PAN'::text) AND (primary_vessel_type = 'CARGO'::text))
+   Heap Blocks: exact=1984
+   Buffers: shared hit=1984 read=6
+   ->  Bitmap Index Scan on ix_dv_flag_type  (cost=0.00..9.34 rows=492 width=0) (actual time=0.804..0.804 rows=2857.00 loops=1)
+         Index Cond: ((flag_country = 'PAN'::text) AND (primary_vessel_type = 'CARGO'::text))
+         Index Searches: 1
+         Buffers: shared read=6
+ Planning:
+   Buffers: shared hit=23 read=1
+ Planning Time: 0.350 ms
+ Execution Time: 2.682 ms
+(12 rows)
+
